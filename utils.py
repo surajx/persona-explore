@@ -39,7 +39,7 @@ def sync_s3_bucket(bucket_name, local_dir, state_file):
             ).replace(tzinfo=timezone.utc)
         else:
             bucket_last_modified = datetime.now(timezone.utc)
-    except ClientError as e:
+    except Exception as e:
         print(f"Error accessing bucket: {e}", file=sys.stderr)
         return
 
@@ -65,20 +65,30 @@ def sync_s3_bucket(bucket_name, local_dir, state_file):
                     os.makedirs(os.path.dirname(local_path), exist_ok=True)
                     # Download the file
                     s3.download_file(bucket_name, key, local_path)
-                    # Update sync state
-                    sync_state[key] = {
-                        "etag": etag,
-                        "last_sync": obj["LastModified"].isoformat(),
-                    }
-                except ClientError as e:
+                    download_success = True
+                    error_message = None
+                except Exception as e:
                     print(f"Error downloading {key}: {e}", file=sys.stderr)
+                    download_success = False
+                    error_message = str(e)
+
+                # Update sync state regardless of download success
+                sync_state[key] = {
+                    "etag": etag,
+                    "last_sync": obj["LastModified"].isoformat(),
+                    "download_success": download_success,
+                    "error_message": error_message,
+                }
+
+                # Save sync state after each file (in case of interruption)
+                save_sync_state(state_file, sync_state)
             else:
                 print(f"Skipping {key} - already up to date")
 
     # Update last sync time
     sync_state["last_sync"] = datetime.now(timezone.utc).isoformat()
 
-    # Save sync state
+    # Final save of sync state
     save_sync_state(state_file, sync_state)
 
 
