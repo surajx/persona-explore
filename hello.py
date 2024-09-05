@@ -31,17 +31,11 @@ def load_images(page: int = 1):
     end = start + images_per_page
 
     # Get the list of image files
-    image_files = sorted(
-        [f for f in os.listdir(IMAGE_DIR) if f.endswith(".png")],
-        key=lambda x: int(x.split(".")[0]),
-    )
+    image_files = [f for f in os.listdir(IMAGE_DIR) if f.endswith(".jpg")]
 
     images = [
         Div(
-            Img(
-                src=f"/image/{os.path.splitext(file)[0]}",
-                alt=f"Person {os.path.splitext(file)[0]}",
-            ),
+            Img(src=f"/image/{os.path.splitext(file)[0]}", alt=f"Person {file}"),
             cls="tile",
             data_id=os.path.splitext(file)[0],
         )
@@ -56,9 +50,9 @@ def load_images(page: int = 1):
     )
 
 
-@app.get("/image/{persona_id}")
-def get_image(persona_id: str):
-    image_path = os.path.join(IMAGE_DIR, f"{persona_id}.png")
+@app.get("/image/{sha_value}")
+def get_image(sha_value: str):
+    image_path = os.path.join(IMAGE_DIR, f"{sha_value}.jpg")
     if os.path.exists(image_path):
         return FileResponse(image_path)
     else:
@@ -146,10 +140,11 @@ def js_component():
     )
 
 
-@app.get("/person/{id}")
-def person_detail(id: str):
-    return Title(f"Person {id}"), Main(
-        H1(f"Details for Person {id}"), Img(src=f"/image/{id}", alt=f"Person {id}")
+@app.get("/person/{sha_value}")
+def person_detail(sha_value: str):
+    return Title(f"Person {sha_value}"), Main(
+        H1(f"Details for Person {sha_value}"),
+        Img(src=f"/image/{sha_value}", alt=f"Person {sha_value}"),
     )
 
 
