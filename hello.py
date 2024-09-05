@@ -12,7 +12,9 @@ import functools
 
 @functools.lru_cache(maxsize=1)
 def get_image_list():
-    return [f for f in os.listdir(IMAGE_DIR) if f.endswith(".jpg")]
+    files = [f for f in os.listdir(IMAGE_DIR) if f.endswith(".jpg")]
+    print(f"First 5 image files: {files[:5]}")
+    return files
 
 
 @app.get("/")
@@ -36,17 +38,20 @@ def canvas_component():
 
 @app.get("/load-images")
 def load_images(page: int = 1):
-    images_per_page = 1000  # Increased from 500
+    images_per_page = 100  # Reduced for debugging
     start = (page - 1) * images_per_page
     end = start + images_per_page
 
     image_files = get_image_list()
 
+    print(f"Loading images from {start} to {end}")
+    print(f"Total images: {len(image_files)}")
+
     images = [
         Div(
-            Img(src=f"/image/{os.path.splitext(file)[0]}", alt=f"Person {file}"),
+            Img(src=f"/image/{file.split('.')[0]}", alt=f"Person {file}"),
             cls="tile",
-            data_id=os.path.splitext(file)[0],
+            data_id=file.split(".")[0],
         )
         for file in image_files[start:end]
     ]
@@ -71,42 +76,44 @@ def get_image(sha_value: str):
 def css_component():
     return Style(
         """
-        body, html {
-            margin: 0;
-            padding: 0;
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-        }
-        #infinite-canvas-container {
-            width: 100vw;
-            height: 100vh;
-            overflow: auto;
-        }
-        #infinite-canvas {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-            grid-auto-rows: 100px;
-            grid-auto-flow: dense;
-            width: 300vw;  /* Increased width */
-            height: 300vh; /* Increased height */
-        }
-        .tile {
-            width: 100px;
-            height: 100px;
-            transition: all 0.3s;
-            overflow: hidden;
-        }
-        .tile img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-        .tile.center {
-            transform: scale(1.5);
-            z-index: 1;
-        }
-    """
+body, html {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+}
+#infinite-canvas-container {
+    width: 100vw;
+    height: 100vh;
+    overflow: auto;  /* Ensure the container is scrollable */
+}
+#infinite-canvas {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    grid-auto-rows: 100px;
+    width: 300vw;
+    height: 300vh;
+    background-color: #f0f0f0; /* Added for visibility */
+}
+.tile {
+    width: 100px;
+    height: 100px;
+    transition: all 0.3s;
+    overflow: hidden;
+    border: 1px solid #ccc; /* Added for visibility */
+}
+.tile img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+.tile.center {
+    transform: scale(1.5);
+    z-index: 1;
+    border: 2px solid red; /* Added for visibility */
+}
+"""
     )
 
 
