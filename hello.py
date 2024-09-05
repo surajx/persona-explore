@@ -7,6 +7,13 @@ app = FastHTML()
 # Define the path to our images
 IMAGE_DIR = "data/st-agent-images-local"
 
+import functools
+
+
+@functools.lru_cache(maxsize=1)
+def get_image_list():
+    return [f for f in os.listdir(IMAGE_DIR) if f.endswith(".jpg")]
+
 
 @app.get("/")
 def home():
@@ -17,21 +24,23 @@ def home():
 
 def canvas_component():
     return Div(
-        id="infinite-canvas",
-        hx_get="/load-images",
-        hx_trigger="intersect once",
-        hx_swap="beforeend",
+        Div(
+            id="infinite-canvas",
+            hx_get="/load-images",
+            hx_trigger="intersect once",
+            hx_swap="beforeend",
+        ),
+        id="infinite-canvas-container",
     )
 
 
 @app.get("/load-images")
 def load_images(page: int = 1):
-    images_per_page = 100
+    images_per_page = 1000  # Increased from 500
     start = (page - 1) * images_per_page
     end = start + images_per_page
 
-    # Get the list of image files
-    image_files = [f for f in os.listdir(IMAGE_DIR) if f.endswith(".jpg")]
+    image_files = get_image_list()
 
     images = [
         Div(
@@ -62,16 +71,31 @@ def get_image(sha_value: str):
 def css_component():
     return Style(
         """
-        #infinite-canvas {
-            display: flex;
-            flex-wrap: wrap;
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+        #infinite-canvas-container {
+            width: 100vw;
             height: 100vh;
             overflow: auto;
+        }
+        #infinite-canvas {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            grid-auto-rows: 100px;
+            grid-auto-flow: dense;
+            width: 300vw;  /* Increased width */
+            height: 300vh; /* Increased height */
         }
         .tile {
             width: 100px;
             height: 100px;
             transition: all 0.3s;
+            overflow: hidden;
         }
         .tile img {
             width: 100%;
@@ -89,21 +113,22 @@ def css_component():
 def js_component():
     return Script(
         """
+        const container = document.getElementById('infinite-canvas-container');
         const canvas = document.getElementById('infinite-canvas');
         let centerTile = null;
 
         function updateCenterTile() {
-            const rect = canvas.getBoundingClientRect();
-            const centerX = rect.left + rect.width / 2;
-            const centerY = rect.top + rect.height / 2;
+            const rect = container.getBoundingClientRect();
+            const centerX = rect.width / 2 + container.scrollLeft;
+            const centerY = rect.height / 2 + container.scrollTop;
             
             let closest = null;
             let closestDistance = Infinity;
 
             canvas.querySelectorAll('.tile').forEach(tile => {
                 const tileRect = tile.getBoundingClientRect();
-                const tileX = tileRect.left + tileRect.width / 2;
-                const tileY = tileRect.top + tileRect.height / 2;
+                const tileX = tileRect.left + tileRect.width / 2 + container.scrollLeft - rect.left;
+                const tileY = tileRect.top + tileRect.height / 2 + container.scrollTop - rect.top;
                 
                 const distance = Math.sqrt(Math.pow(centerX - tileX, 2) + Math.pow(centerY - tileY, 2));
                 
@@ -120,19 +145,28 @@ def js_component():
             }
         }
 
-        canvas.addEventListener('scroll', updateCenterTile);
+        container.addEventListener('scroll', updateCenterTile);
         window.addEventListener('resize', updateCenterTile);
 
-        canvas.addEventListener('click', (e) => {
+        container.addEventListener('click', (e) => {
             if (e.target.closest('.tile')) {
                 const tile = e.target.closest('.tile');
                 if (tile === centerTile) {
                     window.location.href = `/person/${tile.dataset.id}`;
                 } else {
-                    tile.scrollIntoView({behavior: 'smooth', block: 'center', inline: 'center'});
+                    const rect = tile.getBoundingClientRect();
+                    container.scrollTo({
+                        left: rect.left + container.scrollLeft - container.clientWidth / 2 + rect.width / 2,
+                        top: rect.top + container.scrollTop - container.clientHeight / 2 + rect.height / 2,
+                        behavior: 'smooth'
+                    });
                 }
             }
         });
+
+        // Initial center
+        container.scrollTo(container.scrollWidth / 2 - container.clientWidth / 2,
+                           container.scrollHeight / 2 - container.clientHeight / 2);
 
         // Initial update
         updateCenterTile();
