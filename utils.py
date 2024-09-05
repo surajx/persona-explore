@@ -29,7 +29,9 @@ def download_file(s3, bucket_name, key, local_path):
         return False, str(e)
 
 
-def sync_s3_bucket(bucket_name, local_dir, state_file, max_workers=10, retry_limit=3):
+def sync_s3_bucket(
+    bucket_name, local_dir, state_file, subfolder=None, max_workers=10, retry_limit=3
+):
     s3 = boto3.client("s3")
     os.makedirs(local_dir, exist_ok=True)
     sync_state = load_sync_state(state_file)
@@ -54,13 +56,17 @@ def sync_s3_bucket(bucket_name, local_dir, state_file, max_workers=10, retry_lim
         print("Bucket hasn't been modified since last sync. Skipping.")
         return
 
+    # Use the Prefix parameter to limit to the subfolder
     paginator = s3.get_paginator("list_objects_v2")
-    files_to_download = []
+    prefix = subfolder if subfolder else ""
 
-    for page in paginator.paginate(Bucket=bucket_name):
+    files_to_download = []
+    for page in paginator.paginate(Bucket=bucket_name, Prefix=prefix):
         for obj in page.get("Contents", []):
             key = obj["Key"]
-            local_path = os.path.join(local_dir, key)
+            local_path = os.path.join(
+                local_dir, os.path.relpath(key, prefix)
+            )  # Use relative path from the subfolder
             etag = obj["ETag"].strip('"')
 
             if key not in sync_state or sync_state[key]["etag"] != etag:
@@ -103,7 +109,8 @@ def sync_s3_bucket(bucket_name, local_dir, state_file, max_workers=10, retry_lim
 
 
 if __name__ == "__main__":
-    bucket_name = "st-agent-images"
+    bucket_name = "st-public-assets"
     local_dir = "./data/st-agent-images-local"
     state_file = "sync_state.json"
-    sync_s3_bucket(bucket_name, local_dir, state_file)
+    subfolder = "images/agents/"  # Set your desired subfolder here
+    sync_s3_bucket(bucket_name, local_dir, state_file, subfolder=subfolder)
