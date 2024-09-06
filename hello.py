@@ -53,7 +53,7 @@ def get():
     }
 
     .zoomed {
-        transform: scale(1.5);
+        transform: scale(2);
         z-index: 1;
     }
 
@@ -74,7 +74,7 @@ def get():
     {js_img_array}  // Image array
 
     const gridSize = 100;  // Fixed size for images
-    const gridGap = 5;  // Space between cells
+    const gridGap = 20;  // Increase space between cells to 20px
     const numCellsX = Math.ceil(5000 / (gridSize + gridGap));  // Number of cells horizontally
     const numCellsY = Math.ceil(5000 / (gridSize + gridGap));  // Number of cells vertically
 
