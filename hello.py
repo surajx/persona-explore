@@ -50,7 +50,7 @@ def get():
         height: 100px;
         border-radius: 10px;
         transition: transform 0.2s ease-in-out, opacity 0.2s ease-in-out;
-        opacity: 0.4;  /* Initially dim all images */
+        opacity: 0.3;  /* Initially dim all images */
     }
 
     .zoomed {
