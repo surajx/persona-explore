@@ -49,14 +49,15 @@ def get():
         width: 100px;  /* Fixed size for images */
         height: 100px;
         border-radius: 10px;
-        transition: transform 0.2s ease-in-out;
+        transition: transform 0.2s ease-in-out, opacity 0.2s ease-in-out;
+        opacity: 0.4;  /* Initially dim all images */
     }
 
     .zoomed {
         transform: scale(2);
         z-index: 1;
+        opacity: 1;  /* Full opacity for focused image */
     }
-
     """
 
     # Load all image file names from the directory
@@ -65,7 +66,7 @@ def get():
     # Create a JavaScript array to hold the image paths
     js_img_array = f"const images = {str([f'/image/{os.path.splitext(img)[0]}' for img in img_files])};"
 
-    # JavaScript for creating the grid and applying zoom effect
+    # JavaScript for creating the grid and applying zoom and opacity effect
     js_code = f"""
     const grid = document.createElement('div');
     grid.id = 'grid';
@@ -74,7 +75,7 @@ def get():
     {js_img_array}  // Image array
 
     const gridSize = 100;  // Fixed size for images
-    const gridGap = 20;  // Increase space between cells to 20px
+    const gridGap = 17;  // Space between cells
     const numCellsX = Math.ceil(5000 / (gridSize + gridGap));  // Number of cells horizontally
     const numCellsY = Math.ceil(5000 / (gridSize + gridGap));  // Number of cells vertically
 
@@ -92,7 +93,7 @@ def get():
 
     let currentZoomedItem = null;
 
-    // Function to handle zoom and scroll adjustment
+    // Function to handle zoom and opacity adjustment
     function zoomOnCenter() {{
         const centerX = window.innerWidth / 2 + window.scrollX;
         const centerY = window.innerHeight / 2 + window.scrollY;
@@ -118,7 +119,7 @@ def get():
             currentZoomedItem.classList.remove('zoomed');
         }}
 
-        // Add zoom to the closest item and scroll only if the closest item has changed
+        // Add zoom and full opacity to the closest item, and dim others
         if (closestItem && closestItem !== currentZoomedItem) {{
             closestItem.classList.add('zoomed');
             currentZoomedItem = closestItem;
