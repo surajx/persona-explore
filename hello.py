@@ -38,94 +38,109 @@ def get():
         left: 0;
     }
 
-    .grid-cell img {
+    #grid {
+        position: relative;
+        width: 5000px;  /* Large grid size */
+        height: 5000px;
+    }
+
+    .grid-item {
+        position: absolute;
+        width: 100px;  /* Fixed size for images */
+        height: 100px;
         border-radius: 10px;
-        border: 2px solid white;
-        box-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
-        opacity: 0.9;
-        transition: opacity 0.3s ease, transform 0.3s ease;
-        width: 100px;
-        height: 100px;  /* Fixed size */
+        transition: transform 0.2s ease-in-out;
     }
 
-    .grid-cell img:hover {
-        opacity: 1;
-        transform: scale(1.1);
+    .zoomed {
+        transform: scale(1.5);
+        z-index: 1;
     }
 
-    .focused {
-        transform: scale(1.5) !important;  /* Zoom effect */
-        box-shadow: 5px 5px 15px rgba(255, 255, 255, 0.8);
-        z-index: 10;  /* Ensure focused cell is above others */
-    }
     """
 
     # Load all image file names from the directory
     img_files = [f for f in os.listdir(IMAGE_DIR) if f.endswith(".jpg")]
 
-    # JavaScript array to hold the image paths
+    # Create a JavaScript array to hold the image paths
     js_img_array = f"const images = {str([f'/image/{os.path.splitext(img)[0]}' for img in img_files])};"
 
-    # Canvas element
-    canvas = Canvas(id="grid-canvas")
-
-    # JavaScript for canvas, scrolling, and drawing images
+    # JavaScript for creating the grid and applying zoom effect
     js_code = f"""
-    const canvas = document.getElementById('grid-canvas');
-    const ctx = canvas.getContext('2d');
-    const gridSize = 100;  // Fixed size for images
-    const scrollSpeed = 20;  // Scrolling speed
+    const grid = document.createElement('div');
+    grid.id = 'grid';
+    document.body.appendChild(grid);
 
     {js_img_array}  // Image array
 
-    // Set canvas size to be much larger than the viewport
-    const canvasWidth = 5000;  // Example width
-    const canvasHeight = 5000;  // Example height
+    const gridSize = 100;  // Fixed size for images
+    const gridGap = 5;  // Space between cells
+    const numCellsX = Math.ceil(5000 / (gridSize + gridGap));  // Number of cells horizontally
+    const numCellsY = Math.ceil(5000 / (gridSize + gridGap));  // Number of cells vertically
 
-    canvas.width = canvasWidth;
-    canvas.height = canvasHeight;
-
-    // Function to draw the grid with images in each cell
-    function drawGrid() {{
-        const numCellsX = Math.ceil(canvasWidth / gridSize);
-        const numCellsY = Math.ceil(canvasHeight / gridSize);
-
-        ctx.clearRect(0, 0, canvasWidth, canvasHeight);
-
-        // Draw images in each grid cell
-        for (let x = 0; x <= numCellsX * gridSize; x += gridSize + 5) {{
-            for (let y = 0; y <= numCellsY * gridSize; y += gridSize + 5) {{
-                const img = new Image();
-                img.src = images[Math.floor(Math.random() * images.length)];
-                img.onload = () => {{
-                    ctx.drawImage(img, x, y, gridSize, gridSize);
-                }};
-            }}
+    // Create grid items and append to grid
+    for (let x = 0; x < numCellsX; x++) {{
+        for (let y = 0; y < numCellsY; y++) {{
+            const img = new Image();
+            img.src = images[Math.floor(Math.random() * images.length)];
+            img.classList.add('grid-item');
+            img.style.left = `${{x * (gridSize + gridGap)}}px`;
+            img.style.top = `${{y * (gridSize + gridGap)}}px`;
+            grid.appendChild(img);
         }}
     }}
 
-    // Variables to track scroll position
-    let scrollX = 0;
-    let scrollY = 0;
+    // Function to handle zoom on central cell
+    function zoomOnCenter() {{
+        const centerX = window.innerWidth / 2 + window.scrollX;
+        const centerY = window.innerHeight / 2 + window.scrollY;
+
+        let closestItem = null;
+        let closestDistance = Infinity;
+
+        const items = document.querySelectorAll('.grid-item');
+        items.forEach(item => {{
+            const itemRect = item.getBoundingClientRect();
+            const itemCenterX = itemRect.left + itemRect.width / 2;
+            const itemCenterY = itemRect.top + itemRect.height / 2;
+
+            const distance = Math.sqrt(Math.pow(centerX - itemCenterX, 2) + Math.pow(centerY - itemCenterY, 2));
+            if (distance < closestDistance) {{
+                closestDistance = distance;
+                closestItem = item;
+            }}
+        }});
+
+        // Remove zoom from all items
+        items.forEach(item => item.classList.remove('zoomed'));
+
+        // Add zoom to closest item
+        if (closestItem) {{
+            closestItem.classList.add('zoomed');
+        }}
+    }}
+
+    // Call zoomOnCenter initially and on scroll
+    zoomOnCenter();
+    window.addEventListener('scroll', zoomOnCenter);
 
     // Scroll canvas with arrow keys
     window.addEventListener('keydown', function(e) {{
         switch (e.key) {{
             case 'ArrowUp':
-                scrollY = Math.max(scrollY - scrollSpeed, 0);
+                window.scrollBy(0, -20);
                 break;
             case 'ArrowDown':
-                scrollY = Math.min(scrollY + scrollSpeed, canvasHeight - window.innerHeight);
+                window.scrollBy(0, 20);
                 break;
             case 'ArrowLeft':
-                scrollX = Math.max(scrollX - scrollSpeed, 0);
+                window.scrollBy(-20, 0);
                 break;
             case 'ArrowRight':
-                scrollX = Math.min(scrollX + scrollSpeed, canvasWidth - window.innerWidth);
+                window.scrollBy(20, 0);
                 break;
         }}
-        window.scrollTo(scrollX, scrollY);
-        focusCenterCell();
+        zoomOnCenter();
     }});
 
     // Swipe handling for touch devices
@@ -144,47 +159,17 @@ def get():
         let diffX = touchStartX - touchEndX;
         let diffY = touchStartY - touchEndY;
 
-        if (Math.abs(diffX) > Math.abs(diffY)) {{
-            // Horizontal swipe
-            scrollX = Math.min(Math.max(scrollX + diffX, 0), canvasWidth - window.innerWidth);
-        }} else {{
-            // Vertical swipe
-            scrollY = Math.min(Math.max(scrollY + diffY, 0), canvasHeight - window.innerHeight);
-        }}
+        window.scrollBy(diffX, diffY);
+        zoomOnCenter();
 
-        window.scrollTo(scrollX, scrollY);
         touchStartX = touchEndX;
         touchStartY = touchEndY;
-        focusCenterCell();
     }});
-
-    // Function to focus on the center grid cell and zoom it
-    function focusCenterCell() {{
-        const centerX = window.innerWidth / 2 + window.scrollX;
-        const centerY = window.innerHeight / 2 + window.scrollY;
-
-        const nearestCellX = Math.round(centerX / gridSize) * gridSize;
-        const nearestCellY = Math.round(centerY / gridSize) * gridSize;
-
-        const allImages = document.querySelectorAll('.grid-cell img');
-        allImages.forEach(img => img.classList.remove('focused'));
-
-        const img = document.elementFromPoint(window.innerWidth / 2, window.innerHeight / 2);
-        if (img && img.tagName === 'IMG') {{
-            img.classList.add('focused');
-        }}
-    }}
-
-    // Initialize the grid and set up focus
-    drawGrid();
-    focusCenterCell();
-    window.addEventListener('scroll', focusCenterCell);
     """
 
     return Titled(
-        "Scrollable Grid Canvas with Focus Effect",
+        "Scrollable Grid with Focus Effect",
         Style(css),  # Inline CSS
-        canvas,  # The canvas element
         Script(js_code),  # Inline JavaScript
     )
 
