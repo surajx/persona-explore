@@ -22,17 +22,13 @@ def get_image(persona_id: str):
 
 @app.route("/")
 def get():
-    # CSS for the body, canvas, and grid cells
+    # CSS for body and canvas
     css = """
     body {
         margin: 0;
         padding: 0;
         overflow: hidden;
         background: linear-gradient(to bottom, #000000, #1a1a1a);
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        min-height: 100vh;
     }
 
     canvas {
@@ -43,10 +39,13 @@ def get():
     }
 
     .grid-cell img {
+        border-radius: 100px;  /* Rounded corners */
         border: 2px solid white;
         box-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
-        opacity: 0.8;
+        opacity: 0.9;
         transition: opacity 0.3s ease, transform 0.3s ease;
+        width: 100px;
+        height: 100px;  /* Fixed size */
     }
 
     .grid-cell img:hover {
@@ -64,30 +63,32 @@ def get():
     # Canvas element
     canvas = Canvas(id="grid-canvas")
 
-    # JavaScript to draw the grid and randomly place images in each cell
+    # JavaScript for canvas, scrolling, and drawing images
     js_code = f"""
     const canvas = document.getElementById('grid-canvas');
     const ctx = canvas.getContext('2d');
-    const gridSize = 50;
+    const gridSize = 100;  // Fixed size for images
+    const scrollSpeed = 20;  // Scrolling speed
+
     {js_img_array}  // Image array
 
-    // Function to resize the canvas based on window size
-    function resizeCanvas() {{
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
-        drawGrid();
-    }}
+    // Set canvas size to be much larger than the viewport
+    const canvasWidth = 5000;  // Example width
+    const canvasHeight = 5000;  // Example height
+
+    canvas.width = canvasWidth;
+    canvas.height = canvasHeight;
 
     // Function to draw the grid with images in each cell
     function drawGrid() {{
-        const numCellsX = Math.ceil(canvas.width / gridSize);
-        const numCellsY = Math.ceil(canvas.height / gridSize);
+        const numCellsX = Math.ceil(canvasWidth / gridSize);
+        const numCellsY = Math.ceil(canvasHeight / gridSize);
 
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.clearRect(0, 0, canvasWidth, canvasHeight);
 
         // Draw images in each grid cell
-        for (let x = 0; x <= numCellsX * gridSize; x += gridSize + 5) {{  // Adding 5px margin
-            for (let y = 0; y <= numCellsY * gridSize; y += gridSize + 5) {{  // Adding 5px margin
+        for (let x = 0; x <= numCellsX * gridSize; x += gridSize + 5) {{
+            for (let y = 0; y <= numCellsY * gridSize; y += gridSize + 5) {{
                 const img = new Image();
                 img.src = images[Math.floor(Math.random() * images.length)];
                 img.onload = () => {{
@@ -97,13 +98,64 @@ def get():
         }}
     }}
 
-    // Initialize canvas and set event listener for window resizing
-    window.addEventListener('resize', resizeCanvas);
-    resizeCanvas();  // Call this initially to set the canvas size
+    // Variables to track scroll position
+    let scrollX = 0;
+    let scrollY = 0;
+
+    // Scroll canvas with arrow keys
+    window.addEventListener('keydown', function(e) {{
+        switch (e.key) {{
+            case 'ArrowUp':
+                scrollY = Math.max(scrollY - scrollSpeed, 0);
+                break;
+            case 'ArrowDown':
+                scrollY = Math.min(scrollY + scrollSpeed, canvasHeight - window.innerHeight);
+                break;
+            case 'ArrowLeft':
+                scrollX = Math.max(scrollX - scrollSpeed, 0);
+                break;
+            case 'ArrowRight':
+                scrollX = Math.min(scrollX + scrollSpeed, canvasWidth - window.innerWidth);
+                break;
+        }}
+        window.scrollTo(scrollX, scrollY);
+    }});
+
+    // Swipe handling for touch devices
+    let touchStartX = 0;
+    let touchStartY = 0;
+
+    window.addEventListener('touchstart', function(e) {{
+        touchStartX = e.touches[0].clientX;
+        touchStartY = e.touches[0].clientY;
+    }});
+
+    window.addEventListener('touchmove', function(e) {{
+        let touchEndX = e.touches[0].clientX;
+        let touchEndY = e.touches[0].clientY;
+
+        let diffX = touchStartX - touchEndX;
+        let diffY = touchStartY - touchEndY;
+
+        if (Math.abs(diffX) > Math.abs(diffY)) {{
+            // Horizontal swipe
+            scrollX = Math.min(Math.max(scrollX + diffX, 0), canvasWidth - window.innerWidth);
+        }} else {{
+            // Vertical swipe
+            scrollY = Math.min(Math.max(scrollY + diffY, 0), canvasHeight - window.innerHeight);
+        }}
+
+        window.scrollTo(scrollX, scrollY);
+        touchStartX = touchEndX;
+        touchStartY = touchEndY;
+    }});
+
+    // Initialize the grid
+    drawGrid();
     """
 
     return Titled(
-        "Grid Canvas with Random Images",
+        "Scrollable Grid Canvas with Random Images",
         Style(css),  # Inline CSS
         canvas,  # The canvas element
         Script(js_code),  # Inline JavaScript
