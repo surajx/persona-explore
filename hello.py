@@ -13,7 +13,6 @@ app = FastHTML()
 # Route to serve images dynamically
 @app.get("/image/{persona_id}")
 def get_image(persona_id: str):
-    # Dynamically serve image as per the persona_id (without assuming it's always .jpg)
     image_path = os.path.join(IMAGE_DIR, f"{persona_id}.jpg")
     if os.path.exists(image_path):
         return FileResponse(image_path)
@@ -23,13 +22,17 @@ def get_image(persona_id: str):
 
 @app.route("/")
 def get():
-    # CSS for the body and canvas
+    # CSS for the body, canvas, and grid cells
     css = """
     body {
         margin: 0;
         padding: 0;
         overflow: hidden;
-        background-color: black;
+        background: linear-gradient(to bottom, #000000, #1a1a1a);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
     }
 
     canvas {
@@ -38,18 +41,36 @@ def get():
         top: 0;
         left: 0;
     }
+
+    .grid-cell img {
+        border: 2px solid white;
+        box-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        opacity: 0.8;
+        transition: opacity 0.3s ease, transform 0.3s ease;
+    }
+
+    .grid-cell img:hover {
+        opacity: 1;
+        transform: scale(1.1);
+    }
     """
 
     # Load all image file names from the directory
     img_files = [f for f in os.listdir(IMAGE_DIR) if f.endswith(".jpg")]
 
-    # JavaScript to draw the grid and randomly place images in each cell
-    # Corrected JavaScript code inside the f-string
+    # JavaScript array to hold the image paths
+    js_img_array = f"const images = {str([f'/image/{os.path.splitext(img)[0]}' for img in img_files])};"
+
+    # Canvas element
+    canvas = Canvas(id="grid-canvas")
+
+    # JavaScript to draw the grid and randomly place images in each cell with margins and random sizes
     js_code = f"""
     const canvas = document.getElementById('grid-canvas');
     const ctx = canvas.getContext('2d');
     const gridSize = 50;
-    const images = {str([f'/image/{os.path.splitext(img)[0]}' for img in img_files])};  // Image array
+    const sizes = [50, 75, 100];  // Different cell sizes
+    {js_img_array}  // Image array
 
     // Function to resize the canvas based on window size
     function resizeCanvas() {{
@@ -66,12 +87,13 @@ def get():
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
         // Randomly draw images in each grid cell
-        for (let x = 0; x <= numCellsX * gridSize; x += gridSize) {{
-            for (let y = 0; y <= numCellsY * gridSize; y += gridSize) {{
+        for (let x = 0; x <= numCellsX * gridSize; x += gridSize + 5) {{  // Adding 5px margin
+            for (let y = 0; y <= numCellsY * gridSize; y += gridSize + 5) {{  // Adding 5px margin
                 const img = new Image();
+                const randomSize = sizes[Math.floor(Math.random() * sizes.length)];
                 img.src = images[Math.floor(Math.random() * images.length)];
                 img.onload = () => {{
-                    ctx.drawImage(img, x, y, gridSize, gridSize);
+                    ctx.drawImage(img, x, y, randomSize, randomSize);
                 }};
             }}
         }}
@@ -85,7 +107,7 @@ def get():
     return Titled(
         "Grid Canvas with Random Images",
         Style(css),  # Inline CSS
-        Canvas(id="grid-canvas"),  # The canvas element
+        canvas,  # The canvas element
         Script(js_code),  # Inline JavaScript
     )
 
