@@ -13,6 +13,7 @@ app = FastHTML()
 # Route to serve images dynamically
 @app.get("/image/{persona_id}")
 def get_image(persona_id: str):
+    # Dynamically serve image as per the persona_id (without assuming it's always .jpg)
     image_path = os.path.join(IMAGE_DIR, f"{persona_id}.jpg")
     if os.path.exists(image_path):
         return FileResponse(image_path)
@@ -41,12 +42,6 @@ def get():
 
     # Load all image file names from the directory
     img_files = [f for f in os.listdir(IMAGE_DIR) if f.endswith(".jpg")]
-
-    # Create a JavaScript array to hold the image paths (using dynamic routes)
-    js_img_array = f"const images = {str([f'/image/{os.path.splitext(img)[0]}' for img in img_files])};"
-
-    # Canvas element
-    canvas = Canvas(id="grid-canvas")
 
     # JavaScript to draw the grid and randomly place images in each cell
     # Corrected JavaScript code inside the f-string
@@ -90,7 +85,7 @@ def get():
     return Titled(
         "Grid Canvas with Random Images",
         Style(css),  # Inline CSS
-        canvas,  # The canvas element
+        Canvas(id="grid-canvas"),  # The canvas element
         Script(js_code),  # Inline JavaScript
     )
 
