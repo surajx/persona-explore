@@ -4,7 +4,6 @@ from fasthtml.xtend import Titled, Script, Style
 app = FastHTML()
 
 
-# Route to display the canvas with inline CSS and JavaScript
 @app.route("/")
 def get():
     # CSS for the body and canvas
@@ -12,58 +11,66 @@ def get():
     body {
         margin: 0;
         padding: 0;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        height: 100vh;
+        overflow: hidden;
         background-color: black;
     }
 
     canvas {
         display: block;
+        position: absolute;
+        top: 0;
+        left: 0;
     }
     """
 
-    # Canvas tag with its dimensions
-    canvas = Canvas(id="grid-canvas", width="800", height="600")
+    # Canvas element
+    canvas = Canvas(id="grid-canvas")
 
-    # JavaScript for creating a grid on the canvas
+    # JavaScript to draw the grid and handle resizing
     js_code = """
     const canvas = document.getElementById('grid-canvas');
     const ctx = canvas.getContext('2d');
     const gridSize = 50;
-    const canvasWidth = canvas.width;
-    const canvasHeight = canvas.height;
 
-    function drawGrid() {
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
-        for (let x = 0; x <= canvasWidth; x += gridSize) {
-            ctx.beginPath();
-            ctx.moveTo(x, 0);
-            ctx.lineTo(x, canvasHeight);
-            ctx.stroke();
-        }
-        for (let y = 0; y <= canvasHeight; y += gridSize) {
-            ctx.beginPath();
-            ctx.moveTo(0, y);
-            ctx.lineTo(canvasWidth, y);
-            ctx.stroke();
-        }
-    }
-
-    function centerGrid() {
-        const translateX = (canvasWidth % gridSize) / 2;
-        const translateY = (canvasHeight % gridSize) / 2;
-        ctx.translate(translateX, translateY);
+    // Function to resize the canvas based on window size
+    function resizeCanvas() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
         drawGrid();
     }
 
-    centerGrid();
+    // Function to draw the grid with 50x50 cells
+    function drawGrid() {
+        const numCellsX = Math.ceil(canvas.width / gridSize);
+        const numCellsY = Math.ceil(canvas.height / gridSize);
+
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+
+        // Draw vertical grid lines
+        for (let x = 0; x <= numCellsX * gridSize; x += gridSize) {
+            ctx.beginPath();
+            ctx.moveTo(x, 0);
+            ctx.lineTo(x, canvas.height);
+            ctx.stroke();
+        }
+
+        // Draw horizontal grid lines
+        for (let y = 0; y <= numCellsY * gridSize; y += gridSize) {
+            ctx.beginPath();
+            ctx.moveTo(0, y);
+            ctx.lineTo(canvas.width, y);
+            ctx.stroke();
+        }
+    }
+
+    // Initialize canvas and set event listener for window resizing
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas(); // Call this initially to set the canvas size
     """
 
-    # Return the response with CSS and JavaScript
     return Titled(
-        "Grid Canvas",
+        "Large Grid Canvas",
         Style(css),  # Inline CSS
         canvas,  # The canvas element
         Script(js_code),  # Inline JavaScript
