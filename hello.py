@@ -90,7 +90,9 @@ def get():
         }}
     }}
 
-    // Function to handle zoom on central cell
+    let currentZoomedItem = null;
+
+    // Function to handle zoom and scroll adjustment
     function zoomOnCenter() {{
         const centerX = window.innerWidth / 2 + window.scrollX;
         const centerY = window.innerHeight / 2 + window.scrollY;
@@ -101,8 +103,8 @@ def get():
         const items = document.querySelectorAll('.grid-item');
         items.forEach(item => {{
             const itemRect = item.getBoundingClientRect();
-            const itemCenterX = itemRect.left + itemRect.width / 2;
-            const itemCenterY = itemRect.top + itemRect.height / 2;
+            const itemCenterX = itemRect.left + itemRect.width / 2 + window.scrollX;
+            const itemCenterY = itemRect.top + itemRect.height / 2 + window.scrollY;
 
             const distance = Math.sqrt(Math.pow(centerX - itemCenterX, 2) + Math.pow(centerY - itemCenterY, 2));
             if (distance < closestDistance) {{
@@ -111,20 +113,25 @@ def get():
             }}
         }});
 
-        // Remove zoom from all items
-        items.forEach(item => item.classList.remove('zoomed'));
+        // Remove zoom from the previous item
+        if (currentZoomedItem && closestItem !== currentZoomedItem) {{
+            currentZoomedItem.classList.remove('zoomed');
+        }}
 
-        // Add zoom to closest item
-        if (closestItem) {{
+        // Add zoom to the closest item and scroll only if the closest item has changed
+        if (closestItem && closestItem !== currentZoomedItem) {{
             closestItem.classList.add('zoomed');
+            currentZoomedItem = closestItem;
         }}
     }}
 
-    // Call zoomOnCenter initially and on scroll
+    // Initial call to align the first centered item
     zoomOnCenter();
+
+    // Event listener for scroll to adjust zoom on the center item
     window.addEventListener('scroll', zoomOnCenter);
 
-    // Scroll canvas with arrow keys
+    // Arrow keys for scrolling
     window.addEventListener('keydown', function(e) {{
         switch (e.key) {{
             case 'ArrowUp':
