@@ -39,7 +39,7 @@ def get():
     }
 
     .grid-cell img {
-        border-radius: 100px;  /* Rounded corners */
+        border-radius: 10px;
         border: 2px solid white;
         box-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
         opacity: 0.9;
@@ -51,6 +51,12 @@ def get():
     .grid-cell img:hover {
         opacity: 1;
         transform: scale(1.1);
+    }
+
+    .focused {
+        transform: scale(1.5) !important;  /* Zoom effect */
+        box-shadow: 5px 5px 15px rgba(255, 255, 255, 0.8);
+        z-index: 10;  /* Ensure focused cell is above others */
     }
     """
 
@@ -119,6 +125,7 @@ def get():
                 break;
         }}
         window.scrollTo(scrollX, scrollY);
+        focusCenterCell();
     }});
 
     // Swipe handling for touch devices
@@ -148,14 +155,34 @@ def get():
         window.scrollTo(scrollX, scrollY);
         touchStartX = touchEndX;
         touchStartY = touchEndY;
+        focusCenterCell();
     }});
 
-    // Initialize the grid
+    // Function to focus on the center grid cell and zoom it
+    function focusCenterCell() {{
+        const centerX = window.innerWidth / 2 + window.scrollX;
+        const centerY = window.innerHeight / 2 + window.scrollY;
+
+        const nearestCellX = Math.round(centerX / gridSize) * gridSize;
+        const nearestCellY = Math.round(centerY / gridSize) * gridSize;
+
+        const allImages = document.querySelectorAll('.grid-cell img');
+        allImages.forEach(img => img.classList.remove('focused'));
+
+        const img = document.elementFromPoint(window.innerWidth / 2, window.innerHeight / 2);
+        if (img && img.tagName === 'IMG') {{
+            img.classList.add('focused');
+        }}
+    }}
+
+    // Initialize the grid and set up focus
     drawGrid();
+    focusCenterCell();
+    window.addEventListener('scroll', focusCenterCell);
     """
 
     return Titled(
-        "Scrollable Grid Canvas with Random Images",
+        "Scrollable Grid Canvas with Focus Effect",
         Style(css),  # Inline CSS
         canvas,  # The canvas element
         Script(js_code),  # Inline JavaScript
