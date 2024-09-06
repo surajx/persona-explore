@@ -64,12 +64,11 @@ def get():
     # Canvas element
     canvas = Canvas(id="grid-canvas")
 
-    # JavaScript to draw the grid and randomly place images in each cell with margins and random sizes
+    # JavaScript to draw the grid and randomly place images in each cell
     js_code = f"""
     const canvas = document.getElementById('grid-canvas');
     const ctx = canvas.getContext('2d');
     const gridSize = 50;
-    const sizes = [50, 75, 100];  // Different cell sizes
     {js_img_array}  // Image array
 
     // Function to resize the canvas based on window size
@@ -86,14 +85,13 @@ def get():
 
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        // Randomly draw images in each grid cell
+        // Draw images in each grid cell
         for (let x = 0; x <= numCellsX * gridSize; x += gridSize + 5) {{  // Adding 5px margin
             for (let y = 0; y <= numCellsY * gridSize; y += gridSize + 5) {{  // Adding 5px margin
                 const img = new Image();
-                const randomSize = sizes[Math.floor(Math.random() * sizes.length)];
                 img.src = images[Math.floor(Math.random() * images.length)];
                 img.onload = () => {{
-                    ctx.drawImage(img, x, y, randomSize, randomSize);
+                    ctx.drawImage(img, x, y, gridSize, gridSize);
                 }};
             }}
         }}
