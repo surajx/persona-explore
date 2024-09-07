@@ -10,7 +10,7 @@ import time
 
 # Setup logging
 logging.basicConfig(
-    level=logging.DEBUG,  # Set to DEBUG for verbose output
+    level=logging.INFO,  # Set to DEBUG for verbose output
     format="%(asctime)s [%(levelname)s] %(message)s",
     handlers=[logging.StreamHandler(sys.stdout)],
 )
@@ -132,8 +132,8 @@ def sync_s3_bucket(
 
 
 if __name__ == "__main__":
-    bucket_name = "st-public-assets"
-    local_dir = "data/st-agent-images-local"
-    state_file = "sync_state.json"
-    subfolder = "images/agents/"  # Set your desired subfolder here
+    bucket_name = "st-data-repository"
+    local_dir = "data/st-agent-local"
+    state_file = "sync_state_agents.json"
+    subfolder = "agents/"  # Set your desired subfolder here
     sync_s3_bucket(bucket_name, local_dir, state_file, subfolder=subfolder)

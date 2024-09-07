@@ -1,23 +1,40 @@
 from fasthtml.common import *
 from fasthtml.xtend import Titled, Script, Style
+import boto3
 import os
-import random
-from starlette.responses import FileResponse
 
-# Set your image directory
-IMAGE_DIR = "data/st-agent-images-local"
+import random
 
 app = FastHTML()
 
+# Define the S3 bucket name and folder
+S3_BUCKET_NAME = "st-public-assets"
+S3_FOLDER = "images/agents/"
+S3_BUCKET_URL = f"https://{S3_BUCKET_NAME}.s3.amazonaws.com/{S3_FOLDER}"
 
-# Route to serve images dynamically
-@app.get("/image/{persona_id}")
-def get_image(persona_id: str):
-    image_path = os.path.join(IMAGE_DIR, f"{persona_id}.jpg")
-    if os.path.exists(image_path):
-        return FileResponse(image_path)
-    else:
-        return "Image not found", 404
+# Initialize the boto3 client for S3
+s3 = boto3.client("s3")
+
+# In-memory list to hold image filenames from S3
+image_filenames = []
+
+
+# Function to fetch all image filenames from the S3 bucket
+def fetch_image_filenames():
+    global image_filenames
+    response = s3.list_objects_v2(Bucket=S3_BUCKET_NAME, Prefix=S3_FOLDER)
+
+    if "Contents" in response:
+        # Extract the filenames from the S3 folder
+        image_filenames = [
+            obj["Key"].replace(S3_FOLDER, "")
+            for obj in response["Contents"]
+            if obj["Key"].endswith(".jpg")
+        ]
+
+
+# Fetch filenames from S3 when the app starts
+fetch_image_filenames()
 
 
 @app.route("/")
@@ -50,21 +67,23 @@ def get():
         height: 100px;
         border-radius: 10px;
         transition: transform 0.2s ease-in-out, opacity 0.2s ease-in-out;
-        opacity: 0.3;  /* Initially dim all images */
+        opacity: 0.5;  /* Initially dim all images */
     }
 
     .zoomed {
-        transform: scale(2);
+        transform: scale(1.5);
         z-index: 1;
         opacity: 1;  /* Full opacity for focused image */
     }
     """
 
-    # Load all image file names from the directory
-    img_files = [f for f in os.listdir(IMAGE_DIR) if f.endswith(".jpg")]
+    # Create a JavaScript array to hold the S3 image paths (randomize order)
+    random_images = [
+        S3_BUCKET_URL + img
+        for img in random.sample(image_filenames, len(image_filenames))
+    ]
 
-    # Create a JavaScript array to hold the image paths
-    js_img_array = f"const images = {str([f'/image/{os.path.splitext(img)[0]}' for img in img_files])};"
+    js_img_array = f"const images = {random_images};"
 
     # JavaScript for creating the grid and applying zoom and opacity effect
     js_code = f"""
@@ -75,7 +94,7 @@ def get():
     {js_img_array}  // Image array
 
     const gridSize = 100;  // Fixed size for images
-    const gridGap = 17;  // Space between cells
+    const gridGap = 20;  // Space between cells
     const numCellsX = Math.ceil(5000 / (gridSize + gridGap));  // Number of cells horizontally
     const numCellsY = Math.ceil(5000 / (gridSize + gridGap));  // Number of cells vertically
 
@@ -142,8 +161,8 @@ def get():
     }}
 
     // Initial call to scroll to the center of the large grid and align the centered item
-    zoomOnCenter();
     scrollToCanvasCenter();
+    zoomOnCenter();
 
     // Event listener for scroll to adjust zoom on the center item
     window.addEventListener('scroll', zoomOnCenter);
@@ -198,5 +217,5 @@ def get():
     )
 
 
-# Serve static files dynamically using a custom route
+# Serve the FastHTML app
 serve()
