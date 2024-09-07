@@ -126,8 +126,24 @@ def get():
         }}
     }}
 
-    // Initial call to align the first centered item
+    // Function to scroll to the center of the entire grid on page load
+    function scrollToCanvasCenter() {{
+        const gridWidth = numCellsX * (gridSize + gridGap);
+        const gridHeight = numCellsY * (gridSize + gridGap);
+        
+        const scrollX = (gridWidth - window.innerWidth) / 2;
+        const scrollY = (gridHeight - window.innerHeight) / 2;
+
+        window.scrollTo({{
+            top: scrollY,
+            left: scrollX,
+            behavior: 'auto'  // Scroll to the center immediately on load
+        }});
+    }}
+
+    // Initial call to scroll to the center of the large grid and align the centered item
     zoomOnCenter();
+    scrollToCanvasCenter();
 
     // Event listener for scroll to adjust zoom on the center item
     window.addEventListener('scroll', zoomOnCenter);
