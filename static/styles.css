@@ -1,0 +1,34 @@
+/* Fullscreen grid background with a dark color */
+body,
+html {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: #1b1b1b;
+}
+
+.grid-background {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    grid-template-rows: repeat(5, 1fr);
+    gap: 10px;
+    width: 100vw;
+    height: 100vh;
+    justify-items: center;
+    align-items: center;
+}
+
+.center-grid-item {
+    grid-column: 3 / 4;
+    grid-row: 3 / 4;
+}
+
+.rounded-image {
+    width: 100%;
+    height: auto;
+    max-width: 400px;
+    border-radius: 20px;
+}

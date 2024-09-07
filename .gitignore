@@ -1,2 +1,3 @@
 data/*/*
-sync_state.json
+sync_state*.json
+.vercel
